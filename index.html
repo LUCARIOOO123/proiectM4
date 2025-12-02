@@ -1,0 +1,489 @@
+<!doctype html>
+<html lang="ro">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Labirintul cu Oglinzi</title>
+
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { height: 100%; }
+    body {
+      font-family: system-ui, sans-serif;
+      background:#ffffff;
+      overflow:hidden;
+      overscroll-behavior: contain;
+    }
+
+    .stage {
+      position: relative;
+      width: 100vw;
+      height: 100vh;
+      overflow: hidden;
+      transform-origin: center center;
+      transition: transform 0.8s ease;
+      --zoom-scale: 1.3;
+    }
+
+    .stage.zooming { transform: scale(var(--zoom-scale)); }
+
+    .room {
+      position: absolute;
+      inset: 0;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.5s ease;
+    }
+
+    .room.visible {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .room-bg {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+
+    .overlay {
+      position: fixed;
+      inset: 0;
+      background: #000;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.6s ease;
+      z-index: 50;
+    }
+
+    .overlay.visible { opacity: 1; }
+
+    .arrow-btn {
+      position: absolute;
+      border: none;
+      background: rgba(0,0,0,0.4); /* fundal ca să se vadă pe orice poză */
+      padding: 4px;
+      cursor: pointer;
+      z-index: 10;
+      border-radius: 999px;
+      touch-action: manipulation;
+    }
+
+    .arrow-img {
+      width: 64px;
+      height: 64px;
+      object-fit: contain;
+      filter: drop-shadow(0 0 8px rgba(0,0,0,0.5));
+    }
+
+    .arrow-center-bottom {
+      left: 50%;
+      bottom: 5%;
+      transform: translateX(-50%);
+    }
+
+    /* center of screen */
+    .arrow-center-middle {
+      left: 50%;
+      top: 50%;
+      transform: translate(-50%, -50%);
+    }
+
+    .arrow-left  { transform: rotate(180deg); }
+    .arrow-up    { transform: rotate(-90deg); }
+    .arrow-down  { transform: rotate(90deg); }
+
+    .arrow-top-left    { left: 4%; top: 6%; }
+    .arrow-bottom-left { left: 6%; bottom: 8%; }
+    .arrow-bottom-right{ right: 6%; bottom: 8%; }
+    .arrow-middle-right{ right: 6%; top: 50%; transform: translateY(-50%); }
+
+    .dialogue {
+      position: fixed;
+      left: 50%;
+      bottom: 5%;
+      transform: translateX(-50%);
+      width: min(900px, 92vw);
+      background: rgba(255,255,255,0.96);
+      border-radius: 16px;
+      box-shadow: 0 20px 50px rgba(0,0,0,0.35);
+      padding: 14px 16px calc(12px + env(safe-area-inset-bottom, 0px));
+      z-index: 60;
+      display: none;
+      max-height: 60vh;
+      overflow-y: auto;
+    }
+
+    .dialogue.visible { display: block; }
+
+    .dialogue-top {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      margin-bottom: 8px;
+    }
+
+    .dialogue-avatar {
+      width: 56px;
+      font-size: 40px;
+      text-align: center;
+    }
+
+    .dialogue-text {
+      flex: 1;
+      min-height: 56px;
+      padding: 8px 10px;
+      border-radius: 10px;
+      border: 1px solid #e0e0e0;
+      background: #ffffff;
+      font-size: 14px;
+    }
+
+    .dialogue-back img {
+      width: 48px;
+      height: 48px;
+    }
+
+    .choices {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .choice-btn {
+      flex: 1 1 30%;
+      min-width: 80px;
+      border-radius: 999px;
+      border: 1px solid #ddd;
+      background: linear-gradient(#ffffff, #f4f4f4);
+      padding: 6px 10px;
+      font-size: 13px;
+      cursor: pointer;
+      text-align: center;
+      touch-action: manipulation;
+    }
+
+    /* Responsive adjustments for mobile screens */
+    @media (max-width: 768px) {
+      .stage {
+        height: 100svh;
+        --zoom-scale: 1.15;
+      }
+
+      .arrow-btn { padding: 10px; }
+      .arrow-img { width: 56px; height: 56px; }
+
+      .dialogue {
+        width: min(520px, 94vw);
+        bottom: 3%;
+        padding: 12px 12px calc(12px + env(safe-area-inset-bottom, 0px));
+        border-radius: 14px;
+      }
+
+      .dialogue-top { gap: 8px; }
+      .dialogue-avatar { width: 48px; font-size: 34px; }
+      .dialogue-text { font-size: 15px; }
+
+      .choices { gap: 10px; }
+      .choice-btn {
+        flex: 1 1 100%;
+        padding: 10px 12px;
+        font-size: 14px;
+      }
+    }
+
+    @media (max-width: 480px) {
+      .arrow-img { width: 52px; height: 52px; }
+      .dialogue {
+        width: 94vw;
+        border-radius: 12px;
+      }
+      .dialogue-text { font-size: 14px; }
+    }
+  </style>
+</head>
+
+<body>
+
+<div id="overlay" class="overlay"></div>
+
+<div class="stage" id="stage">
+
+  <!-- EXTERIOR -->
+  <section id="outside" class="room visible">
+    <img src="building1.png" class="room-bg"
+         style="width:50%;height:auto;object-fit:contain;position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);" />
+    <button id="enterArrow" class="arrow-btn arrow-center-bottom">
+      <img src="arrow.png" class="arrow-img arrow-up" />
+    </button>
+  </section>
+
+  <!-- MAZE 1 -->
+  <section id="maze1" class="room">
+    <img src="maze1.png" class="room-bg" />
+
+    <!-- bottom-center down arrow for Maze 1 -->
+    <button id="maze1Down" class="arrow-btn arrow-center-bottom">
+      <img src="arrow.png" class="arrow-img" style="transform:rotate(90deg);" />
+    </button>
+
+    <button id="maze1Left" class="arrow-btn arrow-bottom-left">
+      <img src="arrow.png" class="arrow-img arrow-left" />
+    </button>
+
+    <button id="maze1Right" class="arrow-btn arrow-bottom-right">
+      <img src="arrow.png" class="arrow-img" />
+    </button>
+  </section>
+
+  <!-- CANDY STORE (shrinked) -->
+  <section id="candy" class="room">
+    <img src="candy.jpg" class="room-bg"
+         style="width:80%;height:auto;object-fit:contain;position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);" />
+    <button id="candyBack" class="arrow-btn arrow-bottom-left">
+      <img src="arrow.png" class="arrow-img arrow-left" />
+    </button>
+    <button id="candyForward" class="arrow-btn arrow-bottom-right">
+      <img src="arrow.png" class="arrow-img" />
+    </button>
+  </section>
+
+  <!-- MAZE 2 -->
+  <section id="maze2" class="room">
+    <img src="maze2.jpg" class="room-bg" />
+    <!-- left arrow bottom-center (DOWN) -->
+    <button id="maze2Back" class="arrow-btn arrow-center-bottom">
+      <img src="arrow.png" class="arrow-img arrow-down" />
+    </button>
+    <!-- right arrow center of screen (UP) -->
+    <button id="maze2Forward" class="arrow-btn arrow-center-middle">
+      <img src="arrow.png" class="arrow-img arrow-up" />
+    </button>
+  </section>
+
+  <!-- GAMING ROOM -->
+  <section id="gaming" class="room">
+    <img src="arcade.jpg" class="room-bg" />
+    <button id="gamingRight" class="arrow-btn arrow-bottom-right">
+      <img src="arrow.png" class="arrow-img" />
+    </button>
+    <button id="gamingBack" class="arrow-btn arrow-bottom-left">
+      <img src="arrow.png" class="arrow-img arrow-left" />
+    </button>
+  </section>
+
+  <!-- MAZE 3 -->
+  <section id="maze3" class="room">
+    <img src="maze3.jpg" class="room-bg" />
+    <!-- left arrow bottom-center (DOWN) -->
+    <button id="maze3Back" class="arrow-btn arrow-center-bottom">
+      <img src="arrow.png" class="arrow-img arrow-down" />
+    </button>
+    <!-- right arrow center of screen (UP) -->
+    <button id="maze3Forward" class="arrow-btn arrow-center-middle">
+      <img src="arrow.png" class="arrow-img arrow-up" />
+    </button>
+  </section>
+
+  <!-- CLOTHING STORE -->
+  <section id="clothing" class="room">
+    <img src="clothing.jpg" class="room-bg" />
+    <button id="clothingBack" class="arrow-btn arrow-bottom-left">
+      <img src="arrow.png" class="arrow-img arrow-left" />
+    </button>
+    <button id="clothingToStart" class="arrow-btn arrow-bottom-right">
+      <img src="arrow.png" class="arrow-img" />
+    </button>
+  </section>
+
+</div>
+
+<!-- DIALOG -->
+<div id="dialogue" class="dialogue">
+  <div class="dialogue-top">
+    <div class="dialogue-avatar">👨‍🍳</div>
+    <div id="dialogueText" class="dialogue-text">Text aici</div>
+
+    <button id="dialogClose" class="dialogue-back">
+      <img src="arrow.png" class="arrow-img arrow-left" />
+    </button>
+  </div>
+
+  <div class="choices">
+    <button class="choice-btn" data-choice="1">Ce-i cu locul asta?</button>
+    <button class="choice-btn" data-choice="2">Tu cine esti?</button>
+    <button class="choice-btn" data-choice="3">Pot sa cumpar niste dulciuri?</button>
+  </div>
+</div>
+
+<script>
+const rooms = ["outside","maze1","candy","maze2","gaming","maze3","clothing"];
+const stage = document.getElementById("stage");
+const overlay = document.getElementById("overlay");
+
+// --- VOICE LINES (MP3) ---
+const voiceIntro  = new Audio("intro.mp3");
+const voiceChoice1 = new Audio("choice1.mp3");
+const voiceChoice2 = new Audio("choice2.mp3");
+const voiceChoice3 = new Audio("choice3.mp3");
+
+// --- BACKGROUND MUSIC (looped, autoplay attempt + resilient fallbacks) ---
+const BGmusic = new Audio("BG.mp3");
+const BGMusic = BGmusic; // alias, keep both names available
+BGmusic.loop = true;
+BGmusic.preload = 'auto';
+BGmusic.volume = 0.25;
+BGmusic.autoplay = true;
+
+// Try to start playback immediately. If the browser blocks autoplay,
+// we retry on the first user interaction or when the page becomes visible.
+let bgStarted = false;
+function tryStartBG() {
+  if (bgStarted) return;
+  bgStarted = true;
+  BGmusic.play().catch(() => {
+    // Autoplay blocked — listen for interaction to start audible playback.
+    bgStarted = false;
+  });
+}
+
+// initial attempt
+tryStartBG();
+
+// Retry on first user interaction (click/touch)
+document.addEventListener('click', tryStartBG, { once: true });
+document.addEventListener('touchstart', tryStartBG, { once: true });
+
+// Retry when the page becomes visible again
+document.addEventListener('visibilitychange', () => {
+  if (!document.hidden) tryStartBG();
+});
+
+// If playback stops for some reason, try to restart (keeps music persistent)
+BGmusic.addEventListener('pause', () => {
+  // attempt to restart after a short delay
+  setTimeout(() => {
+    if (BGmusic.paused) tryStartBG();
+  }, 500);
+});
+
+// helper ca să oprim tot înainte să redăm altceva
+function stopAllVoices() {
+  [voiceIntro, voiceChoice1, voiceChoice2, voiceChoice3].forEach(a => {
+    a.pause();
+    a.currentTime = 0;
+  });
+}
+
+function playVoice(audio) {
+  stopAllVoices();
+  if (audio) {
+    audio.play().catch(() => {
+      // în caz că browser-ul blochează autoplay, măcar nu crapă
+    });
+  }
+}
+
+function showRoom(id) {
+  rooms.forEach(r => {
+    const el = document.getElementById(r);
+    if (r === id) el.classList.add("visible");
+    else el.classList.remove("visible");
+  });
+}
+
+function walkTo(targetRoom) {
+  stage.classList.add("zooming");
+  overlay.classList.add("visible");
+
+  setTimeout(() => showRoom(targetRoom), 650);
+  setTimeout(() => {
+    stage.classList.remove("zooming");
+    overlay.classList.remove("visible");
+  }, 1300);
+}
+
+function bindWalk(id, target) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.addEventListener("click", () => walkTo(target));
+}
+
+// Transitions
+bindWalk("enterArrow", "maze1");
+
+bindWalk("maze1Back", "outside");    // no button now, but harmless
+bindWalk("maze1Down", "outside");    // săgeata de jos din Maze1 te scoate afară
+bindWalk("maze1Left", "candy");
+bindWalk("maze1Right", "clothing");
+
+bindWalk("candyBack", "maze2");
+bindWalk("candyForward", "maze1");
+
+bindWalk("maze2Back", "candy");
+bindWalk("maze2Forward", "gaming");
+
+bindWalk("gamingBack", "maze2");
+bindWalk("gamingRight", "maze3");
+
+bindWalk("maze3Back", "clothing");
+bindWalk("maze3Forward", "gaming");
+
+bindWalk("clothingBack", "maze1");
+bindWalk("clothingToStart", "maze3");
+
+// Dialogue
+const dialogue = document.getElementById("dialogue");
+const dialogueText = document.getElementById("dialogueText");
+
+// Liniile de dialog (le poți schimba cum vrei)
+const introLine   = "Yooo ce faci nasuleee! Bun venit la Abztract, cu ce te pot ajuta?";
+const choiceLine1 = "Locul acesta este sectiunea de dulciuri! Mai ai inca 2 sectiuni de vizitat, daca nu le-ai vazut inca. Dar, n-o sa-ti spun ce contin, afla singur! Hahaha!";
+const choiceLine2 = "Eu sunt Nasu' suprem, detin aceasta parte al magazinului Abztract, ceilalti 2 frati ai mei detin celelalte sectiuni, dar, nu sunt sigur ca sunt prezenti astazi, doar eu!";
+const choiceLine3 = "Dar cum sa nu! Asigura-te ca nu au otrava, nu mai tin minte daca sunt expirate sau nu, dar tot au proteine! Haha!";
+
+document.getElementById("candy").addEventListener("click", (e) => {
+  if (e.target.closest(".arrow-btn")) return;
+  dialogue.classList.add("visible");
+  dialogue.setAttribute("aria-hidden", "false");
+  dialogueText.textContent = introLine;
+  playVoice(voiceIntro);
+});
+
+document.getElementById("dialogClose").addEventListener("click", () => {
+  dialogue.classList.remove("visible");
+  dialogue.setAttribute("aria-hidden", "true");
+  stopAllVoices();
+});
+
+document.querySelectorAll(".choice-btn").forEach(btn => {
+  btn.addEventListener("click", () => {
+    const nr = btn.dataset.choice;
+
+    if (nr === "1") {
+      dialogueText.textContent = choiceLine1;
+      playVoice(voiceChoice1);
+    } else if (nr === "2") {
+      dialogueText.textContent = choiceLine2;
+      playVoice(voiceChoice2);
+    } else if (nr === "3") {
+      dialogueText.textContent = choiceLine3;
+      playVoice(voiceChoice3);
+    }
+  });
+});
+
+window.addEventListener("keydown", e => {
+  if (e.key === "Escape") {
+    dialogue.classList.remove("visible");
+    dialogue.setAttribute("aria-hidden", "true");
+    stopAllVoices();
+  }
+});
+
+showRoom("outside");
+</script>
+
+</body>
+</html>
