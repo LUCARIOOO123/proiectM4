@@ -436,6 +436,18 @@ bindWalk("clothingToStart", "maze3");
 // Dialogue
 const dialogue = document.getElementById("dialogue");
 const dialogueText = document.getElementById("dialogueText");
+const candyArrows = [
+  document.getElementById("candyBack"),
+  document.getElementById("candyForward")
+];
+
+function setCandyArrowsVisible(show) {
+  candyArrows.forEach(btn => {
+    if (!btn) return;
+    btn.style.visibility = show ? "visible" : "hidden";
+    btn.style.pointerEvents = show ? "auto" : "none";
+  });
+}
 
 // Liniile de dialog (le poți schimba cum vrei)
 const introLine   = "Yooo ce faci nasuleee! Bun venit la Abztract, cu ce te pot ajuta?";
@@ -445,6 +457,7 @@ const choiceLine3 = "Dar cum sa nu! Asigura-te ca nu au otrava, nu mai tin minte
 
 document.getElementById("candy").addEventListener("click", (e) => {
   if (e.target.closest(".arrow-btn")) return;
+  setCandyArrowsVisible(false);
   dialogue.classList.add("visible");
   dialogue.setAttribute("aria-hidden", "false");
   dialogueText.textContent = introLine;
@@ -452,6 +465,7 @@ document.getElementById("candy").addEventListener("click", (e) => {
 });
 
 document.getElementById("dialogClose").addEventListener("click", () => {
+  setCandyArrowsVisible(true);
   dialogue.classList.remove("visible");
   dialogue.setAttribute("aria-hidden", "true");
   stopAllVoices();
@@ -476,6 +490,7 @@ document.querySelectorAll(".choice-btn").forEach(btn => {
 
 window.addEventListener("keydown", e => {
   if (e.key === "Escape") {
+    setCandyArrowsVisible(true);
     dialogue.classList.remove("visible");
     dialogue.setAttribute("aria-hidden", "true");
     stopAllVoices();
