@@ -371,16 +371,31 @@ document.addEventListener('touchstart', tryStartBG, { once: true });
 
 // Retry when the page becomes visible again
 document.addEventListener('visibilitychange', () => {
+
   if (document.hidden) {
+
     suspendBG();
+
+    suspendVoices();
+
   } else {
+
+    resumeVoices();
+
     BGmusic.muted = false;
+
     tryStartBG();
+
   }
+
 });
+
+
 
 // Stop playback when leaving the page (helps mobile background cases)
 window.addEventListener('pagehide', suspendBG);
+
+window.addEventListener('pagehide', suspendVoices);
 
 // helper ca să oprim tot înainte să redăm altceva
 function stopAllVoices() {
@@ -389,6 +404,32 @@ function stopAllVoices() {
     a.currentTime = 0;
   });
 }
+
+function suspendVoices() {
+
+  stopAllVoices();
+
+  [voiceIntro, voiceChoice1, voiceChoice2, voiceChoice3].forEach(a => {
+
+    a.muted = true;
+
+  });
+
+}
+
+
+
+function resumeVoices() {
+
+  [voiceIntro, voiceChoice1, voiceChoice2, voiceChoice3].forEach(a => {
+
+    a.muted = false;
+
+  });
+
+}
+
+
 
 function playVoice(audio) {
   stopAllVoices();
