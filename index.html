@@ -351,14 +351,26 @@ function tryStartBG() {
 // initial attempt
 tryStartBG();
 
+function pauseBG() {
+  BGmusic.pause();
+  bgStarted = false;
+}
+
 // Retry on first user interaction (click/touch)
 document.addEventListener('click', tryStartBG, { once: true });
 document.addEventListener('touchstart', tryStartBG, { once: true });
 
 // Retry when the page becomes visible again
 document.addEventListener('visibilitychange', () => {
-  if (!document.hidden) tryStartBG();
+  if (document.hidden) {
+    pauseBG();
+  } else {
+    tryStartBG();
+  }
 });
+
+// Stop playback when leaving the page (helps mobile background cases)
+window.addEventListener('pagehide', pauseBG);
 
 // If playback stops for some reason, try to restart (keeps music persistent)
 BGmusic.addEventListener('pause', () => {
