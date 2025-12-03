@@ -372,11 +372,11 @@ document.addEventListener('visibilitychange', () => {
 // Stop playback when leaving the page (helps mobile background cases)
 window.addEventListener('pagehide', pauseBG);
 
-// If playback stops for some reason, try to restart (keeps music persistent)
+// If playback stops, only try to restart when page is visible (prevents background resume on mobile)
 BGmusic.addEventListener('pause', () => {
-  // attempt to restart after a short delay
+  if (document.hidden) return;
   setTimeout(() => {
-    if (BGmusic.paused) tryStartBG();
+    if (BGmusic.paused && !document.hidden) tryStartBG();
   }, 500);
 });
 
