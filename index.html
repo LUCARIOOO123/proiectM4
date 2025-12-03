@@ -340,6 +340,7 @@ BGmusic.autoplay = true;
 // we retry on the first user interaction or when the page becomes visible.
 let bgStarted = false;
 function tryStartBG() {
+  if (document.hidden) return;
   if (bgStarted) return;
   bgStarted = true;
   BGmusic.play().catch(() => {
@@ -356,6 +357,14 @@ function pauseBG() {
   bgStarted = false;
 }
 
+function suspendBG() {
+  // Forcefully silence when page is backgrounded
+  BGmusic.pause();
+  BGmusic.currentTime = 0;
+  BGmusic.muted = true;
+  bgStarted = false;
+}
+
 // Retry on first user interaction (click/touch)
 document.addEventListener('click', tryStartBG, { once: true });
 document.addEventListener('touchstart', tryStartBG, { once: true });
@@ -363,22 +372,15 @@ document.addEventListener('touchstart', tryStartBG, { once: true });
 // Retry when the page becomes visible again
 document.addEventListener('visibilitychange', () => {
   if (document.hidden) {
-    pauseBG();
+    suspendBG();
   } else {
+    BGmusic.muted = false;
     tryStartBG();
   }
 });
 
 // Stop playback when leaving the page (helps mobile background cases)
-window.addEventListener('pagehide', pauseBG);
-
-// If playback stops, only try to restart when page is visible (prevents background resume on mobile)
-BGmusic.addEventListener('pause', () => {
-  if (document.hidden) return;
-  setTimeout(() => {
-    if (BGmusic.paused && !document.hidden) tryStartBG();
-  }, 500);
-});
+window.addEventListener('pagehide', suspendBG);
 
 // helper ca să oprim tot înainte să redăm altceva
 function stopAllVoices() {
