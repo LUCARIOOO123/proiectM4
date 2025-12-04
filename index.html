@@ -322,82 +322,73 @@ const rooms = ["outside","maze1","candy","maze2","gaming","maze3","clothing"];
 const stage = document.getElementById("stage");
 const overlay = document.getElementById("overlay");
 
-// --- VOICE LINES (MP3) ---
-const voiceIntro  = new Audio("intro.mp3");
+// --- AUDIO: BG + VOICE LINES ---
+const BGmusic     = new Audio("BG.mp3");
+const BGMusic     = BGmusic; // alias, dacă îl folosești în altă parte
+BGmusic.loop      = true;
+BGmusic.preload   = "auto";
+BGmusic.volume    = 0.25;
+BGmusic.autoplay  = false; // nu mai forțăm autoplay
+
+const voiceIntro   = new Audio("intro.mp3");
 const voiceChoice1 = new Audio("choice1.mp3");
 const voiceChoice2 = new Audio("choice2.mp3");
 const voiceChoice3 = new Audio("choice3.mp3");
 
-// --- BACKGROUND MUSIC (looped, autoplay attempt + resilient fallbacks) ---
-const BGmusic = new Audio("BG.mp3");
-const BGMusic = BGmusic; // alias, keep both names available
-BGmusic.loop = true;
-BGmusic.preload = 'auto';
-BGmusic.volume = 0.25;
-BGmusic.autoplay = true;
+// --- UNLOCK AUDIO (desktop + mobil) ---
+let audioUnlocked = false;
 
-// Try to start playback immediately. If the browser blocks autoplay,
-// we retry on the first user interaction or when the page becomes visible.
-let bgStarted = false;
-function tryStartBG() {
-  if (document.hidden) return;
-  if (bgStarted) return;
-  bgStarted = true;
-  BGmusic.play().catch(() => {
-    // Autoplay blocked — listen for interaction to start audible playback.
-    bgStarted = false;
+function unlockAudio() {
+  if (audioUnlocked) return;
+  audioUnlocked = true;
+
+  const allAudios = [BGmusic, voiceIntro, voiceChoice1, voiceChoice2, voiceChoice3];
+
+  allAudios.forEach(a => {
+    a.muted = true;
+    a.play().then(() => {
+      a.pause();
+      a.currentTime = 0;
+      a.muted = false;
+    }).catch(() => {
+      // dacă refuză, nu facem scandal, doar nu forțăm
+    });
   });
 }
 
-// initial attempt
-tryStartBG();
-
-function pauseBG() {
-  BGmusic.pause();
-  bgStarted = false;
-}
-
-function suspendBG() {
-  // Forcefully silence when page is backgrounded
-  BGmusic.pause();
-  BGmusic.currentTime = 0;
-  BGmusic.muted = true;
-  bgStarted = false;
-}
-
-// Retry on first user interaction (click/touch)
-document.addEventListener('click', tryStartBG, { once: true });
-document.addEventListener('touchstart', tryStartBG, { once: true });
-
-// Retry when the page becomes visible again
-document.addEventListener('visibilitychange', () => {
-
-  if (document.hidden) {
-
-    suspendBG();
-
-    suspendVoices();
-
-  } else {
-
-    resumeVoices();
-
-    BGmusic.muted = false;
-
-    tryStartBG();
-
+// handler pentru ORICE click/tap în pagină
+function handleUserInteraction() {
+  // 1) dacă nu e deblocat audio, îl deblocăm
+  if (!audioUnlocked) {
+    unlockAudio();
   }
 
+  // 2) dacă muzica e oprită și suntem pe pagină, pornește muzica
+  if (!document.hidden && BGmusic.paused) {
+    BGmusic.play().catch(() => {
+      // dacă mai refuză o dată, nu stricăm nimic
+    });
+  }
+}
+
+document.addEventListener("click", handleUserInteraction);
+document.addEventListener("touchstart", handleUserInteraction);
+
+// când tab-ul devine ascuns (minimize, schimbat tab, etc.)
+window.addEventListener("visibilitychange", () => {
+  if (document.hidden) {
+    BGmusic.pause();
+    stopAllVoices();
+  }
 });
 
+// când pleci complet de pe pagină (închizi tab-ul / navighezi în altă parte)
+window.addEventListener("pagehide", () => {
+  BGmusic.pause();
+  stopAllVoices();
+});
 
-
-// Stop playback when leaving the page (helps mobile background cases)
-window.addEventListener('pagehide', suspendBG);
-
-window.addEventListener('pagehide', suspendVoices);
-
-// helper ca să oprim tot înainte să redăm altceva
+// helper ca să oprim toate vocile
 function stopAllVoices() {
   [voiceIntro, voiceChoice1, voiceChoice2, voiceChoice3].forEach(a => {
     a.pause();
@@ -405,41 +396,16 @@ function stopAllVoices() {
   });
 }
 
-function suspendVoices() {
-
-  stopAllVoices();
-
-  [voiceIntro, voiceChoice1, voiceChoice2, voiceChoice3].forEach(a => {
-
-    a.muted = true;
-
-  });
-
-}
-
-
-
-function resumeVoices() {
-
-  [voiceIntro, voiceChoice1, voiceChoice2, voiceChoice3].forEach(a => {
-
-    a.muted = false;
-
-  });
-
-}
-
-
-
 function playVoice(audio) {
   stopAllVoices();
   if (audio) {
     audio.play().catch(() => {
-      // în caz că browser-ul blochează autoplay, măcar nu crapă
+      // dacă e blocat, nu crash-uim nimic
     });
   }
 }
 
+// --- ROOM LOGIC ---
 function showRoom(id) {
   rooms.forEach(r => {
     const el = document.getElementById(r);
@@ -468,8 +434,8 @@ function bindWalk(id, target) {
 // Transitions
 bindWalk("enterArrow", "maze1");
 
-bindWalk("maze1Back", "outside");    // no button now, but harmless
-bindWalk("maze1Down", "outside");    // săgeata de jos din Maze1 te scoate afară
+bindWalk("maze1Back", "outside");   // nici nu ai buton, dar nu deranjează
+bindWalk("maze1Down", "outside");
 bindWalk("maze1Left", "candy");
 bindWalk("maze1Right", "clothing");
 
@@ -488,7 +454,7 @@ bindWalk("maze3Forward", "gaming");
 bindWalk("clothingBack", "maze1");
 bindWalk("clothingToStart", "maze3");
 
-// Dialogue
+// --- DIALOG ---
 const dialogue = document.getElementById("dialogue");
 const dialogueText = document.getElementById("dialogueText");
 const candyArrows = [
@@ -504,14 +470,16 @@ function setCandyArrowsVisible(show) {
   });
 }
 
-// Liniile de dialog (le poți schimba cum vrei)
+// Liniile de dialog
 const introLine   = "Yooo ce faci nasuleee! Bun venit la Abztract, cu ce te pot ajuta?";
 const choiceLine1 = "Locul acesta este sectiunea de dulciuri! Mai ai inca 2 sectiuni de vizitat, daca nu le-ai vazut inca. Dar, n-o sa-ti spun ce contin, afla singur! Hahaha!";
 const choiceLine2 = "Eu sunt Nasu' suprem, detin aceasta parte al magazinului Abztract, ceilalti 2 frati ai mei detin celelalte sectiuni, dar, nu sunt sigur ca sunt prezenti astazi, doar eu!";
 const choiceLine3 = "Dar cum sa nu! Asigura-te ca nu au otrava, nu mai tin minte daca sunt expirate sau nu, dar tot au proteine! Haha!";
 
 document.getElementById("candy").addEventListener("click", (e) => {
+  // dacă ai apăsat pe săgeți, nu deschidem dialogul
   if (e.target.closest(".arrow-btn")) return;
+
   setCandyArrowsVisible(false);
   dialogue.classList.add("visible");
   dialogue.setAttribute("aria-hidden", "false");
