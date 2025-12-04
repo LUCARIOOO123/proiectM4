@@ -336,45 +336,42 @@ const voiceChoice1 = new Audio("choice1.mp3");
 const voiceChoice2 = new Audio("choice2.mp3");
 const voiceChoice3 = new Audio("choice3.mp3");
 
-// stare pentru BG
-let bgEverStarted  = false;
-let bgPausedByHide = false;
+// nu mai facem “magii”; doar știm dacă audio a fost deja permis
+let audioUnlocked = false;
 
-// pornește muzica de fundal (chemat DOAR din interacțiuni user)
+// pornește muzica de fundal (doar la input de user)
 function startBG() {
-  BGmusic.play().then(() => {
-    bgEverStarted  = true;
-    bgPausedByHide = false;
-  }).catch(() => {
-    // dacă refuză browser-ul, nu face nimic grav
+  BGmusic.play().catch((err) => {
+    // dacă refuză, doar loghează (dacă ai consola deschisă)
+    console.warn("BG play blocked:", err);
   });
 }
 
-// handler global de interacțiune user (click / tap)
-function handleUserInteraction() {
+// click / tap global – folosit pentru unlock + BG
+function handleUserInteraction(e) {
   if (document.hidden) return;
 
-  // prima dată: pornește muzica
-  if (!bgEverStarted) {
-    startBG();
-    return;
+  const insideDialogue = e.target.closest(".dialogue");
+
+  // prima interacțiune “deblochează” audio (în practică e doar un flag logic)
+  if (!audioUnlocked) {
+    audioUnlocked = true;
   }
 
-  // dacă a fost pusă pe pauză când tab-ul era ascuns: re-pornește
-  if (bgPausedByHide || BGmusic.paused) {
+  // dacă click-ul NU este în dialog și muzica e oprită -> încearcă să pornești BG
+  if (!insideDialogue && BGmusic.paused) {
     startBG();
   }
 }
 
 document.addEventListener("click", handleUserInteraction);
-document.addEventListener("touchstart", handleUserInteraction);
+document.addEventListener("touchstart", handleUserInteraction, { passive: true });
 
-// când tab-ul devine invizibil (minimize / schimbi tab)
+// când tab-ul devine invizibil (minimize / schimbat tab)
 document.addEventListener("visibilitychange", () => {
   if (document.hidden) {
     if (!BGmusic.paused) {
       BGmusic.pause();
-      bgPausedByHide = true;
     }
     stopAllVoices();
   }
@@ -385,7 +382,6 @@ window.addEventListener("pagehide", () => {
   if (!BGmusic.paused) {
     BGmusic.pause();
   }
-  bgPausedByHide = true;
   stopAllVoices();
 });
 
@@ -397,13 +393,13 @@ function stopAllVoices() {
   });
 }
 
-// pornește o voce anume
+// pornește o voce anume (apelat direct pe click de buton)
 function playVoice(audio) {
   stopAllVoices();
   if (!audio) return;
   audio.currentTime = 0;
-  audio.play().catch(() => {
-    // dacă nu vrea browser-ul, nu crăpăm
+  audio.play().catch((err) => {
+    console.warn("Voice play blocked:", err);
   });
 }
 
@@ -411,10 +407,9 @@ function playVoice(audio) {
 function showRoom(id) {
   rooms.forEach(r => {
     const el = document.getElementById(r);
-    if (el) {
-      if (r === id) el.classList.add("visible");
-      else el.classList.remove("visible");
-    }
+    if (!el) return;
+    if (r === id) el.classList.add("visible");
+    else el.classList.remove("visible");
   });
 }
 
@@ -438,7 +433,7 @@ function bindWalk(id, target) {
 // Transitions
 bindWalk("enterArrow", "maze1");
 
-bindWalk("maze1Back", "outside");   // chiar dacă nu ai buton, nu deranjează
+bindWalk("maze1Back", "outside");   // dacă nu ai buton, nu deranjează
 bindWalk("maze1Down", "outside");
 bindWalk("maze1Left", "candy");
 bindWalk("maze1Right", "clothing");
@@ -469,7 +464,7 @@ const candyArrows   = [
 function setCandyArrowsVisible(show) {
   candyArrows.forEach(btn => {
     if (!btn) return;
-    btn.style.visibility   = show ? "visible" : "hidden";
+    btn.style.visibility    = show ? "visible" : "hidden";
     btn.style.pointerEvents = show ? "auto" : "none";
   });
 }
@@ -480,7 +475,7 @@ const choiceLine1 = "Locul acesta este sectiunea de dulciuri! Mai ai inca 2 sect
 const choiceLine2 = "Eu sunt Nasu' suprem, detin aceasta parte al magazinului Abztract, ceilalti 2 frati ai mei detin celelalte sectiuni, dar, nu sunt sigur ca sunt prezenti astazi, doar eu!";
 const choiceLine3 = "Dar cum sa nu! Asigura-te ca nu au otrava, nu mai tin minte daca sunt expirate sau nu, dar tot au proteine! Haha!";
 
-// click în zona candy: deschide dialogul (dar ignorăm săgețile)
+// click pe candy (NU pe săgeți) -> deschide dialog
 document.getElementById("candy").addEventListener("click", (e) => {
   if (e.target.closest(".arrow-btn")) return;
 
@@ -493,7 +488,7 @@ document.getElementById("candy").addEventListener("click", (e) => {
 
 // buton de închis dialog
 document.getElementById("dialogClose").addEventListener("click", (e) => {
-  e.stopPropagation(); // să nu declanșeze handlerul global de click
+  e.stopPropagation(); // nu declanșăm handleUserInteraction încă o dată
   setCandyArrowsVisible(true);
   dialogue.classList.remove("visible");
   dialogue.setAttribute("aria-hidden", "true");
@@ -503,7 +498,7 @@ document.getElementById("dialogClose").addEventListener("click", (e) => {
 // butoane de alegeri
 document.querySelectorAll(".choice-btn").forEach(btn => {
   btn.addEventListener("click", (e) => {
-    e.stopPropagation();
+    e.stopPropagation(); // să nu pornească BG în același timp
     const nr = btn.dataset.choice;
 
     if (nr === "1") {
