@@ -62,7 +62,7 @@
     .arrow-btn {
       position: absolute;
       border: none;
-      background: rgba(0,0,0,0.4); /* fundal ca să se vadă pe orice poză */
+      background: rgba(0,0,0,0.4);
       padding: 4px;
       cursor: pointer;
       z-index: 10;
@@ -83,7 +83,6 @@
       transform: translateX(-50%);
     }
 
-    /* center of screen */
     .arrow-center-middle {
       left: 50%;
       top: 50%;
@@ -164,7 +163,6 @@
       touch-action: manipulation;
     }
 
-    /* Responsive adjustments for mobile screens */
     @media (max-width: 768px) {
       .stage {
         height: 100svh;
@@ -223,7 +221,6 @@
   <section id="maze1" class="room">
     <img src="maze1.png" class="room-bg" />
 
-    <!-- bottom-center down arrow for Maze 1 -->
     <button id="maze1Down" class="arrow-btn arrow-center-bottom">
       <img src="arrow.png" class="arrow-img" style="transform:rotate(90deg);" />
     </button>
@@ -252,11 +249,9 @@
   <!-- MAZE 2 -->
   <section id="maze2" class="room">
     <img src="maze2.jpg" class="room-bg" />
-    <!-- left arrow bottom-center (DOWN) -->
     <button id="maze2Back" class="arrow-btn arrow-center-bottom">
       <img src="arrow.png" class="arrow-img arrow-down" />
     </button>
-    <!-- right arrow center of screen (UP) -->
     <button id="maze2Forward" class="arrow-btn arrow-center-middle">
       <img src="arrow.png" class="arrow-img arrow-up" />
     </button>
@@ -276,11 +271,9 @@
   <!-- MAZE 3 -->
   <section id="maze3" class="room">
     <img src="maze3.jpg" class="room-bg" />
-    <!-- left arrow bottom-center (DOWN) -->
     <button id="maze3Back" class="arrow-btn arrow-center-bottom">
       <img src="arrow.png" class="arrow-img arrow-down" />
     </button>
-    <!-- right arrow center of screen (UP) -->
     <button id="maze3Forward" class="arrow-btn arrow-center-middle">
       <img src="arrow.png" class="arrow-img arrow-up" />
     </button>
@@ -299,10 +292,9 @@
 
 </div>
 
-<!-- DIALOG -->
 <div id="dialogue" class="dialogue">
   <div class="dialogue-top">
-    <div class="dialogue-avatar">👨‍🍳</div>
+    <div class="dialogue-avatar">dY`"ƒ??dY?3</div>
     <div id="dialogueText" class="dialogue-text">Text aici</div>
 
     <button id="dialogClose" class="dialogue-back">
@@ -324,7 +316,7 @@ const overlay = document.getElementById("overlay");
 
 // --- AUDIO: BG + VOICE LINES --- //
 const BGmusic = new Audio("BG.mp3");
-const BGMusic = BGmusic; // alias dacă vrei să-l folosești în altă parte
+const BGMusic = BGmusic; // alias
 
 BGmusic.loop    = true;
 BGmusic.preload = "auto";
@@ -336,38 +328,48 @@ const voiceChoice1 = new Audio("choice1.mp3");
 const voiceChoice2 = new Audio("choice2.mp3");
 const voiceChoice3 = new Audio("choice3.mp3");
 
-// nu mai facem “magii”; doar știm dacă audio a fost deja permis
+const voiceMap = {
+  "1": { line: null, audio: voiceChoice1 },
+  "2": { line: null, audio: voiceChoice2 },
+  "3": { line: null, audio: voiceChoice3 },
+};
+
 let audioUnlocked = false;
 
-// pornește muzica de fundal (doar la input de user)
 function startBG() {
   BGmusic.play().catch((err) => {
-    // dacă refuză, doar loghează (dacă ai consola deschisă)
     console.warn("BG play blocked:", err);
   });
 }
 
-// click / tap global – folosit pentru unlock + BG
+function primeAudio() {
+  [BGmusic, voiceIntro, ...Object.values(voiceMap).map(v => v.audio)].forEach(a => {
+    a.preload = "auto";
+    a.load();
+  });
+}
+
+document.addEventListener("pointerdown", (e) => {
+  if (audioUnlocked) return;
+  audioUnlocked = true;
+  primeAudio();
+  startBG();
+}, { once: true });
+
+document.addEventListener("click", handleUserInteraction);
+document.addEventListener("touchstart", handleUserInteraction, { passive: true });
+
 function handleUserInteraction(e) {
   if (document.hidden) return;
-
   const insideDialogue = e.target.closest(".dialogue");
-
-  // prima interacțiune “deblochează” audio (în practică e doar un flag logic)
   if (!audioUnlocked) {
     audioUnlocked = true;
   }
-
-  // dacă click-ul NU este în dialog și muzica e oprită -> încearcă să pornești BG
   if (!insideDialogue && BGmusic.paused) {
     startBG();
   }
 }
 
-document.addEventListener("click", handleUserInteraction);
-document.addEventListener("touchstart", handleUserInteraction, { passive: true });
-
-// când tab-ul devine invizibil (minimize / schimbat tab)
 document.addEventListener("visibilitychange", () => {
   if (document.hidden) {
     if (!BGmusic.paused) {
@@ -377,7 +379,6 @@ document.addEventListener("visibilitychange", () => {
   }
 });
 
-// când pleci complet de pe pagină
 window.addEventListener("pagehide", () => {
   if (!BGmusic.paused) {
     BGmusic.pause();
@@ -385,7 +386,6 @@ window.addEventListener("pagehide", () => {
   stopAllVoices();
 });
 
-// oprește toate vocile
 function stopAllVoices() {
   [voiceIntro, voiceChoice1, voiceChoice2, voiceChoice3].forEach(a => {
     a.pause();
@@ -393,7 +393,6 @@ function stopAllVoices() {
   });
 }
 
-// pornește o voce anume (apelat direct pe click de buton)
 function playVoice(audio) {
   stopAllVoices();
   if (!audio) return;
@@ -402,6 +401,12 @@ function playVoice(audio) {
     console.warn("Voice play blocked:", err);
   });
 }
+
+Object.values(voiceMap).forEach(v => {
+  v.audio.addEventListener("ended", () => {
+    if (BGmusic.paused) startBG();
+  });
+});
 
 // --- ROOM LOGIC --- //
 function showRoom(id) {
@@ -433,7 +438,7 @@ function bindWalk(id, target) {
 // Transitions
 bindWalk("enterArrow", "maze1");
 
-bindWalk("maze1Back", "outside");   // dacă nu ai buton, nu deranjează
+bindWalk("maze1Back", "outside");
 bindWalk("maze1Down", "outside");
 bindWalk("maze1Left", "candy");
 bindWalk("maze1Right", "clothing");
@@ -469,13 +474,15 @@ function setCandyArrowsVisible(show) {
   });
 }
 
-// Liniile de dialog
 const introLine   = "Yooo ce faci nasuleee! Bun venit la Abztract, cu ce te pot ajuta?";
 const choiceLine1 = "Locul acesta este sectiunea de dulciuri! Mai ai inca 2 sectiuni de vizitat, daca nu le-ai vazut inca. Dar, n-o sa-ti spun ce contin, afla singur! Hahaha!";
 const choiceLine2 = "Eu sunt Nasu' suprem, detin aceasta parte al magazinului Abztract, ceilalti 2 frati ai mei detin celelalte sectiuni, dar, nu sunt sigur ca sunt prezenti astazi, doar eu!";
 const choiceLine3 = "Dar cum sa nu! Asigura-te ca nu au otrava, nu mai tin minte daca sunt expirate sau nu, dar tot au proteine! Haha!";
 
-// click pe candy (NU pe săgeți) -> deschide dialog
+voiceMap["1"].line = choiceLine1;
+voiceMap["2"].line = choiceLine2;
+voiceMap["3"].line = choiceLine3;
+
 document.getElementById("candy").addEventListener("click", (e) => {
   if (e.target.closest(".arrow-btn")) return;
 
@@ -486,35 +493,25 @@ document.getElementById("candy").addEventListener("click", (e) => {
   playVoice(voiceIntro);
 });
 
-// buton de închis dialog
 document.getElementById("dialogClose").addEventListener("click", (e) => {
-  e.stopPropagation(); // nu declanșăm handleUserInteraction încă o dată
+  e.stopPropagation();
   setCandyArrowsVisible(true);
   dialogue.classList.remove("visible");
   dialogue.setAttribute("aria-hidden", "true");
   stopAllVoices();
 });
 
-// butoane de alegeri
-document.querySelectorAll(".choice-btn").forEach(btn => {
-  btn.addEventListener("click", (e) => {
-    e.stopPropagation(); // să nu pornească BG în același timp
-    const nr = btn.dataset.choice;
-
-    if (nr === "1") {
-      dialogueText.textContent = choiceLine1;
-      playVoice(voiceChoice1);
-    } else if (nr === "2") {
-      dialogueText.textContent = choiceLine2;
-      playVoice(voiceChoice2);
-    } else if (nr === "3") {
-      dialogueText.textContent = choiceLine3;
-      playVoice(voiceChoice3);
-    }
-  });
+document.querySelector(".choices").addEventListener("click", (e) => {
+  const btn = e.target.closest(".choice-btn");
+  if (!btn) return;
+  e.stopPropagation();
+  const choice = voiceMap[btn.dataset.choice];
+  if (!choice) return;
+  dialogueText.textContent = choice.line;
+  playVoice(choice.audio);
+  if (BGmusic.paused) startBG();
 });
 
-// ESC închide dialogul
 window.addEventListener("keydown", e => {
   if (e.key === "Escape") {
     setCandyArrowsVisible(true);
@@ -524,10 +521,8 @@ window.addEventListener("keydown", e => {
   }
 });
 
-// start în exterior
 showRoom("outside");
 </script>
-
 
 </body>
 </html>
