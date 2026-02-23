@@ -12,7 +12,6 @@ body {
   font-family: system-ui, sans-serif;
   background:#ffffff;
   overflow:hidden;
-  overscroll-behavior: contain;
 }
 
 .stage {
@@ -94,9 +93,7 @@ body {
 .arrow-bottom-left { left: 6%; bottom: 8%; }
 .arrow-bottom-right{ right: 6%; bottom: 8%; }
 
-/* ========================= */
-/* ===== PAPER SYSTEM ====== */
-/* ========================= */
+/* PAPER */
 
 .paper-btn {
   position: absolute;
@@ -111,7 +108,6 @@ body {
 .paper-img {
   width: 120px;
   height: auto;
-  object-fit: contain;
 }
 
 .paper-overlay {
@@ -144,7 +140,6 @@ body {
   transform: translateY(0);
   opacity: 1;
 }
-
 </style>
 </head>
 
@@ -216,7 +211,6 @@ body {
   </button>
 </section>
 
-<!-- CLOTHING STORE -->
 <section id="clothing" class="room">
   <img src="clothing.jpg" class="room-bg" />
   <button id="clothingBack" class="arrow-btn arrow-bottom-left">
@@ -226,12 +220,10 @@ body {
     <img src="arrow.png" class="arrow-img" />
   </button>
 
-  <!-- PAPER BUTTON -->
   <button id="paperBtn" class="paper-btn">
     <img src="paper.png" class="paper-img" />
   </button>
 
-  <!-- PAPER OVERLAY -->
   <div id="paperOverlay" class="paper-overlay">
     <img src="clothingstorelayout.png" class="paper-layout" />
   </div>
@@ -241,6 +233,22 @@ body {
 
 <script>
 
+/* ========= BG MUSIC FIX ========= */
+
+const BGmusic = new Audio("BG.mp3");
+BGmusic.loop = true;
+BGmusic.volume = 0.25;
+
+function startBG(){
+  BGmusic.play().catch(()=>{});
+}
+
+document.addEventListener("click",()=>{
+  if(BGmusic.paused) startBG();
+},{ once:true });
+
+/* ========= ROOMS ========= */
+
 const rooms = ["outside","maze1","candy","maze2","gaming","maze3","clothing"];
 const stage = document.getElementById("stage");
 const overlay = document.getElementById("overlay");
@@ -249,9 +257,13 @@ function showRoom(id){
   rooms.forEach(r=>{
     const el=document.getElementById(r);
     if(!el)return;
-    if(r===id)el.classList.add("visible");
+    if(r===id) el.classList.add("visible");
     else el.classList.remove("visible");
   });
+
+  if(id==="maze1"){
+    startBG(); // ensures music when entering ABZTRACT
+  }
 }
 
 function walkTo(targetRoom){
@@ -288,15 +300,11 @@ bindWalk("clothingToStart","maze3");
 
 showRoom("outside");
 
-/* ===================== */
-/* PAPER FUNCTIONALITY  */
-/* ===================== */
+/* ========= PAPER SYSTEM ========= */
 
 const paperBtn = document.getElementById("paperBtn");
 const paperOverlay = document.getElementById("paperOverlay");
 const paperSound = new Audio("papersound.mp3");
-
-paperSound.preload = "auto";
 paperSound.volume = 0.8;
 
 let paperOpen = false;
@@ -313,16 +321,6 @@ paperBtn.addEventListener("click",(e)=>{
   }else{
     paperOverlay.classList.remove("visible");
   }
-});
-
-paperOverlay.addEventListener("click",()=>{
-  if(!paperOpen)return;
-
-  paperOpen=false;
-
-  paperSound.currentTime=0;
-  paperSound.play().catch(()=>{});
-  paperOverlay.classList.remove("visible");
 });
 
 </script>
