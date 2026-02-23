@@ -175,7 +175,7 @@ style="width:50%;height:auto;object-fit:contain;position:absolute;left:50%;top:5
 </section>
 
 <section id="candy" class="room">
-<img src="candy.jpg" class="room-bg"
+<img id="candyImage" src="candy.jpg" class="room-bg"
 style="width:80%;height:auto;object-fit:contain;position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);" />
 <button id="candyBack" class="arrow-btn arrow-bottom-left">
 <img src="arrow.png" class="arrow-img arrow-left" />
@@ -294,6 +294,29 @@ const paperSound = new Audio("papersound.mp3");
 paperSound.volume = 0.8;
 
 let paperOpen = false;
+
+/* ===== ROOM NAV ===== */
+const rooms = document.querySelectorAll(".room");
+function showRoom(id){
+  rooms.forEach(r=>{
+    r.classList.toggle("visible", r.id === id);
+  });
+  if(id !== "clothing"){
+    paperOpen = false;
+    paperOverlay.classList.remove("visible");
+    clothingArrows.forEach(btn=>{
+      btn.style.pointerEvents = "auto";
+      btn.style.opacity = "1";
+    });
+  }
+}
+
+document.getElementById("enterArrow").addEventListener("click",()=>showRoom("maze1"));
+document.getElementById("maze1Left").addEventListener("click",()=>showRoom("candy"));
+document.getElementById("maze1Right").addEventListener("click",()=>showRoom("clothing"));
+document.getElementById("candyBack").addEventListener("click",()=>showRoom("maze1"));
+document.getElementById("candyForward").addEventListener("click",()=>showRoom("clothing"));
+document.getElementById("clothingBack").addEventListener("click",()=>showRoom("maze1"));
 
 paperBtn.addEventListener("click", (e) => {
   e.stopPropagation();
