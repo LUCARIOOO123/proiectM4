@@ -222,63 +222,108 @@ BGmusic.play().catch(()=>{});
 });
 
 /* ===== DIALOGUE ===== */
-const dialogue=document.getElementById("dialogue");
-const dialogueText=document.getElementById("dialogueText");
+/* ===== DIALOGUE FIXED PROPERLY ===== */
 
-const intro="Yooo ce faci nasuleee! Bun venit la Abztract!";
-const c1="Sectiunea dulciuri!";
-const c2="Eu sunt Nasu' suprem!";
-const c3="Sigur, dar poate sunt expirate!";
+const candyImage = document.getElementById("candyImage");
+const dialogue = document.getElementById("dialogue");
+const dialogueText = document.getElementById("dialogueText");
 
-const v1=new Audio("choice1.mp3");
-const v2=new Audio("choice2.mp3");
-const v3=new Audio("choice3.mp3");
-const vIntro=new Audio("intro.mp3");
+const introLine = "Yooo ce faci nasuleee! Bun venit la Abztract, cu ce te pot ajuta?";
+const choiceLine1 = "Locul acesta este sectiunea de dulciuri! Mai ai inca 2 sectiuni de vizitat!";
+const choiceLine2 = "Eu sunt Nasu' suprem, detin aceasta parte al magazinului Abztract!";
+const choiceLine3 = "Dar cum sa nu! Asigura-te ca nu au otrava! Haha!";
 
-document.getElementById("candy").addEventListener("click",(e)=>{
-if(e.target.closest(".arrow-btn"))return;
-dialogue.classList.add("visible");
-dialogueText.textContent=intro;
-vIntro.play().catch(()=>{});
+const voiceIntro = new Audio("intro.mp3");
+const voice1 = new Audio("choice1.mp3");
+const voice2 = new Audio("choice2.mp3");
+const voice3 = new Audio("choice3.mp3");
+
+function stopVoices(){
+  [voiceIntro,voice1,voice2,voice3].forEach(a=>{
+    a.pause();
+    a.currentTime = 0;
+  });
+}
+
+function openDialogue(){
+  dialogue.classList.add("visible");
+  dialogueText.textContent = introLine;
+  stopVoices();
+  voiceIntro.play().catch(()=>{});
+}
+
+/* 🔥 THIS IS THE IMPORTANT PART */
+candyImage.addEventListener("click",(e)=>{
+  e.stopPropagation();
+  openDialogue();
 });
+
+/* choices */
 
 document.querySelectorAll(".choice-btn").forEach(btn=>{
-btn.addEventListener("click",()=>{
-let t,voice;
-if(btn.dataset.choice==="1"){t=c1;voice=v1;}
-if(btn.dataset.choice==="2"){t=c2;voice=v2;}
-if(btn.dataset.choice==="3"){t=c3;voice=v3;}
-dialogueText.textContent=t;
-voice.currentTime=0;
-voice.play().catch(()=>{});
-});
+  btn.addEventListener("click",(e)=>{
+    e.stopPropagation();
+    stopVoices();
+
+    if(btn.dataset.choice==="1"){
+      dialogueText.textContent = choiceLine1;
+      voice1.play().catch(()=>{});
+    }
+
+    if(btn.dataset.choice==="2"){
+      dialogueText.textContent = choiceLine2;
+      voice2.play().catch(()=>{});
+    }
+
+    if(btn.dataset.choice==="3"){
+      dialogueText.textContent = choiceLine3;
+      voice3.play().catch(()=>{});
+    }
+  });
 });
 
 /* ===== PAPER ===== */
-const paperBtn=document.getElementById("paperBtn");
-const paperOverlay=document.getElementById("paperOverlay");
-const arrows=document.querySelectorAll(".arrow-btn");
-const paperSound=new Audio("papersound.mp3");
-let open=false;
+/* ===== FIXED PAPER SYSTEM ===== */
 
-paperBtn.addEventListener("click",(e)=>{
-e.stopPropagation();
-open=!open;
-paperSound.currentTime=0;
-paperSound.play().catch(()=>{});
+const paperBtn = document.getElementById("paperBtn");
+const paperOverlay = document.getElementById("paperOverlay");
+const clothingSection = document.getElementById("clothing");
+const clothingArrows = clothingSection.querySelectorAll(".arrow-btn");
 
-if(open){
-paperOverlay.classList.add("visible");
-arrows.forEach(a=>a.classList.add("disabled"));
-}else{
-paperOverlay.classList.remove("visible");
-arrows.forEach(a=>a.classList.remove("disabled"));
-}
+const paperSound = new Audio("papersound.mp3");
+paperSound.volume = 0.8;
+
+let paperOpen = false;
+
+paperBtn.addEventListener("click", (e) => {
+  e.stopPropagation();
+  paperOpen = !paperOpen;
+
+  paperSound.currentTime = 0;
+  paperSound.play().catch(()=>{});
+
+  if (paperOpen) {
+    paperOverlay.classList.add("visible");
+
+    /* disable ONLY clothing arrows */
+    clothingArrows.forEach(btn => {
+      btn.style.pointerEvents = "none";
+      btn.style.opacity = "0.4";
+    });
+
+  } else {
+    paperOverlay.classList.remove("visible");
+
+    clothingArrows.forEach(btn => {
+      btn.style.pointerEvents = "auto";
+      btn.style.opacity = "1";
+    });
+  }
 });
 
-/* DO NOTHING WHEN CLICKING OUTSIDE */
-paperOverlay.addEventListener("click",(e)=>{
-e.stopPropagation();
+/* prevent overlay click from closing */
+paperOverlay.addEventListener("click", (e) => {
+  e.stopPropagation();
 });
 
 </script>
