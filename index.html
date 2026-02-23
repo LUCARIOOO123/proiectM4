@@ -519,10 +519,15 @@ const clothingSection = document.getElementById("clothing");
 const clothingArrows = clothingSection.querySelectorAll(".arrow-btn");
 
 let paperOpen = false;
+const paperSound = new Audio("papersound.mp3");
+paperSound.volume = 0.8;
 
 paperBtn.addEventListener("click", (e) => {
 e.stopPropagation();
 paperOpen = !paperOpen;
+
+paperSound.currentTime = 0;
+paperSound.play().catch(()=>{});
 
 if (paperOpen) {
 paperOverlay.classList.add("visible");
