@@ -98,6 +98,50 @@ transform: translate(-50%, -50%);
 .arrow-bottom-right{ right: 6%; bottom: 8%; }
 .arrow-middle-right{ right: 6%; top: 50%; transform: translateY(-50%); }
 
+/* PAPER */
+.paper-btn{
+position:absolute;
+top:4%;
+right:4%;
+border:none;
+background:none;
+cursor:pointer;
+z-index:200;
+}
+
+.paper-img{width:120px;}
+
+.paper-overlay{
+position:fixed;
+inset:0;
+background:rgba(0,0,0,.6);
+display:flex;
+justify-content:center;
+align-items:flex-start;
+padding-top:5%;
+opacity:0;
+pointer-events:none;
+transition:opacity .4s ease;
+z-index:150;
+}
+
+.paper-overlay.visible{
+opacity:1;
+pointer-events:auto;
+}
+
+.paper-layout{
+width:min(700px,90vw);
+transform:translateY(-200px);
+opacity:0;
+transition:transform .5s ease,opacity .5s ease;
+}
+
+.paper-overlay.visible .paper-layout{
+transform:translateY(0);
+opacity:1;
+}
+
 .dialogue {
 position: fixed;
 left: 50%;
@@ -288,13 +332,20 @@ style="width:80%;height:auto;object-fit:contain;position:absolute;left:50%;top:5
 <button id="clothingToStart" class="arrow-btn arrow-bottom-right">
 <img src="arrow.png" class="arrow-img" />
 </button>
+
+<button id="paperBtn" class="paper-btn">
+<img src="paper.png" class="paper-img" />
+</button>
+
+<div id="paperOverlay" class="paper-overlay">
+<img src="clothingstorelayout.png" class="paper-layout" />
+</div>
 </section>
 
 </div>
 
 <div id="dialogue" class="dialogue">
 <div class="dialogue-top">
-    <div class="dialogue-avatar">dY`"ƒ??dY?3</div>
     <div class="dialogue-avatar">👨‍🍳</div>
 <div id="dialogueText" class="dialogue-text">Text aici</div>
 
@@ -460,6 +511,37 @@ bindWalk("maze3Forward", "gaming");
 
 bindWalk("clothingBack", "maze1");
 bindWalk("clothingToStart", "maze3");
+
+// --- PAPER (clothing layout) --- //
+const paperBtn = document.getElementById("paperBtn");
+const paperOverlay = document.getElementById("paperOverlay");
+const clothingSection = document.getElementById("clothing");
+const clothingArrows = clothingSection.querySelectorAll(".arrow-btn");
+
+let paperOpen = false;
+
+paperBtn.addEventListener("click", (e) => {
+e.stopPropagation();
+paperOpen = !paperOpen;
+
+if (paperOpen) {
+paperOverlay.classList.add("visible");
+clothingArrows.forEach(btn => {
+btn.style.pointerEvents = "none";
+btn.style.opacity = "0.4";
+});
+} else {
+paperOverlay.classList.remove("visible");
+clothingArrows.forEach(btn => {
+btn.style.pointerEvents = "auto";
+btn.style.opacity = "1";
+});
+}
+});
+
+paperOverlay.addEventListener("click", (e) => {
+e.stopPropagation();
+});
 
 // --- DIALOG --- //
 const dialogue      = document.getElementById("dialogue");
