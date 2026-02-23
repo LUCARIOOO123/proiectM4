@@ -299,7 +299,9 @@ let paperOpen = false;
 const rooms = document.querySelectorAll(".room");
 function showRoom(id){
   rooms.forEach(r=>{
-    r.classList.toggle("visible", r.id === id);
+    const active = r.id === id;
+    r.classList.toggle("visible", active);
+    r.style.display = active ? "block" : "none";
   });
   if(id !== "clothing"){
     paperOpen = false;
@@ -317,6 +319,9 @@ document.getElementById("maze1Right").addEventListener("click",()=>showRoom("clo
 document.getElementById("candyBack").addEventListener("click",()=>showRoom("maze1"));
 document.getElementById("candyForward").addEventListener("click",()=>showRoom("clothing"));
 document.getElementById("clothingBack").addEventListener("click",()=>showRoom("maze1"));
+
+/* ensure initial visibility is consistent */
+showRoom("outside");
 
 paperBtn.addEventListener("click", (e) => {
   e.stopPropagation();
