@@ -307,6 +307,7 @@ style="width:80%;height:auto;object-fit:contain;position:absolute;left:50%;top:5
 <button class="choice-btn" data-choice="1">Ce-i cu locul asta?</button>
 <button class="choice-btn" data-choice="2">Tu cine esti?</button>
 <button class="choice-btn" data-choice="3">Pot sa cumpar niste dulciuri?</button>
+<button id="dialogExit" class="choice-btn">Iesire</button>
 </div>
 </div>
 
@@ -441,7 +442,6 @@ el.addEventListener("click", () => walkTo(target));
 // Transitions
 bindWalk("enterArrow", "maze1");
 
-bindWalk("maze1Back", "outside");
 bindWalk("maze1Down", "outside");
 bindWalk("maze1Left", "candy");
 bindWalk("maze1Right", "clothing");
@@ -497,6 +497,14 @@ playVoice(voiceIntro);
 });
 
 document.getElementById("dialogClose").addEventListener("click", (e) => {
+e.stopPropagation();
+setCandyArrowsVisible(true);
+dialogue.classList.remove("visible");
+dialogue.setAttribute("aria-hidden", "true");
+stopAllVoices();
+});
+
+document.getElementById("dialogExit").addEventListener("click", (e) => {
 e.stopPropagation();
 setCandyArrowsVisible(true);
 dialogue.classList.remove("visible");
