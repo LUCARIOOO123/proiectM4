@@ -6,139 +6,132 @@
 <title>Labirintul cu Oglinzi</title>
 
 <style>
-* { box-sizing: border-box; margin: 0; padding: 0; }
-html, body { height: 100%; }
-body {
-  font-family: system-ui, sans-serif;
-  background:#ffffff;
+*{box-sizing:border-box;margin:0;padding:0;}
+html,body{height:100%;}
+body{font-family:system-ui;background:#fff;overflow:hidden;}
+
+.stage{
+  position:relative;
+  width:100vw;
+  height:100svh;
   overflow:hidden;
+  transform-origin:center;
+  transition:transform .8s ease;
+  --zoom-scale:1.3;
 }
 
-.stage {
-  position: relative;
-  width: 100vw;
-  height: 100svh;
-  overflow: hidden;
-  transform-origin: center center;
-  transition: transform 0.8s ease;
-  --zoom-scale: 1.3;
+.stage.zooming{transform:scale(var(--zoom-scale));}
+.stage.locked{pointer-events:none;} /* LOCK INTERACTIONS */
+
+.room{
+  position:absolute;
+  inset:0;
+  opacity:0;
+  pointer-events:none;
+  transition:opacity .5s ease;
 }
 
-.stage.zooming { transform: scale(var(--zoom-scale)); }
-
-.room {
-  position: absolute;
-  inset: 0;
-  opacity: 0;
-  pointer-events: none;
-  transition: opacity 0.5s ease;
+.room.visible{
+  opacity:1;
+  pointer-events:auto;
 }
 
-.room.visible {
-  opacity: 1;
-  pointer-events: auto;
+.room-bg{
+  width:100%;
+  height:100%;
+  object-fit:cover;
 }
 
-.room-bg {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  display: block;
+.overlay{
+  position:fixed;
+  inset:0;
+  background:#000;
+  opacity:0;
+  pointer-events:none;
+  transition:opacity .6s ease;
+  z-index:50;
 }
 
-.overlay {
-  position: fixed;
-  inset: 0;
-  background: #000;
-  opacity: 0;
-  pointer-events: none;
-  transition: opacity 0.6s ease;
-  z-index: 50;
+.overlay.visible{opacity:1;}
+
+.arrow-btn{
+  position:absolute;
+  border:none;
+  background:rgba(0,0,0,.4);
+  padding:4px;
+  cursor:pointer;
+  z-index:10;
+  border-radius:999px;
 }
 
-.overlay.visible { opacity: 1; }
-
-.arrow-btn {
-  position: absolute;
-  border: none;
-  background: rgba(0,0,0,0.4);
-  padding: 4px;
-  cursor: pointer;
-  z-index: 10;
-  border-radius: 999px;
+.arrow-img{
+  width:64px;
+  height:64px;
 }
 
-.arrow-img {
-  width: 64px;
-  height: 64px;
-  object-fit: contain;
+.arrow-center-bottom{
+  left:50%;
+  bottom:5%;
+  transform:translateX(-50%);
 }
 
-.arrow-center-bottom {
-  left: 50%;
-  bottom: 5%;
-  transform: translateX(-50%);
+.arrow-center-middle{
+  left:50%;
+  top:50%;
+  transform:translate(-50%,-50%);
 }
 
-.arrow-center-middle {
-  left: 50%;
-  top: 50%;
-  transform: translate(-50%, -50%);
-}
-
-.arrow-left  { transform: rotate(180deg); }
-.arrow-up    { transform: rotate(-90deg); }
-.arrow-down  { transform: rotate(90deg); }
-
-.arrow-bottom-left { left: 6%; bottom: 8%; }
-.arrow-bottom-right{ right: 6%; bottom: 8%; }
+.arrow-left{transform:rotate(180deg);}
+.arrow-up{transform:rotate(-90deg);}
+.arrow-down{transform:rotate(90deg);}
+.arrow-bottom-left{left:6%;bottom:8%;}
+.arrow-bottom-right{right:6%;bottom:8%;}
 
 /* PAPER */
 
-.paper-btn {
-  position: absolute;
-  top: 4%;
-  right: 4%;
-  border: none;
-  background: none;
-  cursor: pointer;
-  z-index: 20;
+.paper-btn{
+  position:absolute;
+  top:4%;
+  right:4%;
+  border:none;
+  background:none;
+  cursor:pointer;
+  z-index:200; /* above everything */
 }
 
-.paper-img {
-  width: 120px;
-  height: auto;
+.paper-img{
+  width:120px;
 }
 
-.paper-overlay {
-  position: fixed;
-  inset: 0;
-  background: rgba(0,0,0,0.45);
-  display: flex;
-  justify-content: center;
-  align-items: flex-start;
-  padding-top: 5%;
-  opacity: 0;
-  pointer-events: none;
-  transition: opacity 0.4s ease;
-  z-index: 90;
+.paper-overlay{
+  position:fixed;
+  inset:0;
+  background:rgba(0,0,0,.6);
+  display:flex;
+  justify-content:center;
+  align-items:flex-start;
+  padding-top:5%;
+  opacity:0;
+  pointer-events:none;
+  transition:opacity .4s ease;
+  z-index:150;
 }
 
-.paper-overlay.visible {
-  opacity: 1;
-  pointer-events: auto;
+.paper-overlay.visible{
+  opacity:1;
+  pointer-events:auto;
 }
 
-.paper-layout {
-  width: min(700px, 90vw);
-  transform: translateY(-150px);
-  opacity: 0;
-  transition: transform 0.5s ease, opacity 0.5s ease;
+.paper-layout{
+  width:min(700px,90vw);
+  transform:translateY(-200px);
+  opacity:0;
+  transition:transform .5s ease,opacity .5s ease;
 }
 
-.paper-overlay.visible .paper-layout {
-  transform: translateY(0);
-  opacity: 1;
+.paper-overlay.visible .paper-layout{
+  transform:translateY(0);
+  opacity:1;
 }
 </style>
 </head>
@@ -233,44 +226,36 @@ body {
 
 <script>
 
-/* ========= BG MUSIC FIX ========= */
+/* ========= BGMUSIC ========= */
 
 const BGmusic = new Audio("BG.mp3");
 BGmusic.loop = true;
-BGmusic.volume = 0.25;
+BGmusic.volume = 0.35;
 
-function startBG(){
+/* PLAY ONLY WHEN ENTER ARROW IS PRESSED */
+document.getElementById("enterArrow").addEventListener("pointerdown",()=>{
   BGmusic.play().catch(()=>{});
-}
-
-document.addEventListener("click",()=>{
-  if(BGmusic.paused) startBG();
-},{ once:true });
+});
 
 /* ========= ROOMS ========= */
 
-const rooms = ["outside","maze1","candy","maze2","gaming","maze3","clothing"];
-const stage = document.getElementById("stage");
-const overlay = document.getElementById("overlay");
+const rooms=["outside","maze1","candy","maze2","gaming","maze3","clothing"];
+const stage=document.getElementById("stage");
+const overlay=document.getElementById("overlay");
 
 function showRoom(id){
   rooms.forEach(r=>{
     const el=document.getElementById(r);
     if(!el)return;
-    if(r===id) el.classList.add("visible");
+    if(r===id)el.classList.add("visible");
     else el.classList.remove("visible");
   });
-
-  if(id==="maze1"){
-    startBG(); // ensures music when entering ABZTRACT
-  }
 }
 
-function walkTo(targetRoom){
+function walkTo(target){
   stage.classList.add("zooming");
   overlay.classList.add("visible");
-
-  setTimeout(()=>showRoom(targetRoom),650);
+  setTimeout(()=>showRoom(target),650);
   setTimeout(()=>{
     stage.classList.remove("zooming");
     overlay.classList.remove("visible");
@@ -300,27 +285,34 @@ bindWalk("clothingToStart","maze3");
 
 showRoom("outside");
 
-/* ========= PAPER SYSTEM ========= */
+/* ========= PAPER ========= */
 
-const paperBtn = document.getElementById("paperBtn");
-const paperOverlay = document.getElementById("paperOverlay");
-const paperSound = new Audio("papersound.mp3");
-paperSound.volume = 0.8;
+const paperBtn=document.getElementById("paperBtn");
+const paperOverlay=document.getElementById("paperOverlay");
+const paperSound=new Audio("papersound.mp3");
+paperSound.volume=.8;
 
-let paperOpen = false;
+let paperOpen=false;
 
 paperBtn.addEventListener("click",(e)=>{
   e.stopPropagation();
-  paperOpen = !paperOpen;
+  paperOpen=!paperOpen;
 
-  paperSound.currentTime = 0;
+  paperSound.currentTime=0;
   paperSound.play().catch(()=>{});
 
   if(paperOpen){
     paperOverlay.classList.add("visible");
+    stage.classList.add("locked"); /* disable ALL interactions */
   }else{
     paperOverlay.classList.remove("visible");
+    stage.classList.remove("locked");
   }
+});
+
+/* PREVENT ANY CLOSING FROM OUTSIDE */
+paperOverlay.addEventListener("click",(e)=>{
+  e.stopPropagation();
 });
 
 </script>
